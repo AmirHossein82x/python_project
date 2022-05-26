@@ -68,28 +68,26 @@ def move_down():
     if can_move(new_x, new_y):
         move(new_x, new_y)
 for i in range(hole_count):
-    round = 1
-    while round == 1:
         hole_x = randint(0, board_length - 1)
         hole_y = randint(0, board_width - 1)
-        if board[hole_y][hole_x] != safe_house_sign and board[hole_y][hole_x] != final_home and hole_x != robot_x and hole_y != robot_y:
+        if board[hole_y][hole_x] != safe_house_sign and board[hole_y][hole_x] != final_home and board[hole_y][hole_x] != robot_sign and board[hole_y][hole_x] != hole_sign:
             board[hole_y][hole_x] = hole_sign
             holes_situation.append((hole_y, hole_x))
-            round += 1
+            
 def make_hole():
-    count = 1
-    while count == 1:
+    while True:
         hole_x = randint(0, board_length - 1)
         hole_y = randint(0, board_width - 1)
         if hole_x != robot_x and hole_y != robot_y and board[robot_y][robot_x] != safe_house_sign and board[robot_y][robot_x] != final_home and board[robot_y][robot_x]!=hole_sign:
             board[hole_y][hole_x] = hole_sign
             holes_situation.append((hole_x, hole_y))
-            count += 1
+            break
+
 controller = {"U": move_up, "D": move_down, "R": move_right, "L": move_left}
 game_round = 1
 while True:
     print_board()
-    game_round += 1
+    
     direction = input("enter direction: ")
     chance = "UDRL"
     result = controller.get(random.choice(chance))
@@ -110,15 +108,17 @@ while True:
                 board[safe_y][safe_x] = safe_house_sign
     if robot_x == final_home_x and robot_y == final_home_y:
         print("You win!")
-        break
         exit()
+
     for hole_x, hole_y in holes_situation:
         if robot_x == hole_x and robot_y == hole_y:
             print("game over!")
-            break
             exit()
+
     if game_round % 3 == 0:
         make_hole()
+
+    game_round += 1
     
     
 
