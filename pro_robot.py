@@ -63,7 +63,7 @@ class Board:
             bomb_x = random.randint(0, 9)
             bomb_y = random.randint(0, 9)
             cell = self.road[bomb_y][bomb_x]
-            if isinstance(cell, Cell):
+            if isinstance(cell, Cell) and len(cell.content) == 0:
                 self.road[bomb_y][bomb_x] = Bomb()
                 count += 1
 
@@ -154,7 +154,7 @@ class Robot:
                             street.add_content(self)
                             break
                 else:
-                        street.add_content(self)
+                    street.add_content(self)
 
             except IndexError:
                 self.x += 1
