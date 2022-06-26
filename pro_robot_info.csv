@@ -1,0 +1,5 @@
+symbol,defenition,duty
+R,Robot_sign,
+T,Teleport_house,Teleport the robot wherever you want
+B,Bomb_sign,if robot goes on it you will lost
+W,win_house,if robot goes on it you will win  
