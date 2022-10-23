@@ -18,9 +18,11 @@ bullet_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defe
 
 COIN_FONT = pygame.font.SysFont('comicsans', 40)
 HEALTH_FONT = pygame.font.SysFont('comicsans', 10)
+end_game_FONT = pygame.font.SysFont('comicsans', 100)
 coin = 600
 HEALTH = 100
-
+RED = (255, 0, 0)
+dead_zombie = 0
 
 class ZombieHome:
     def __init__(self):
@@ -35,6 +37,7 @@ class ZombieHome:
         if 0 <= len(self.zombie_list) <= 3:
             available_zombie = [FastZombie, SlowZombie]
             zombie = random.choice(available_zombie)
+            print(zombie)
             self.zombie_list.append(zombie())
 
 
@@ -47,20 +50,29 @@ class ZombieHome:
             zombie.move()
 
     def zombie_wins(self):
+        global HEALTH
         for zombie in self.zombie_list:
             if 0<=zombie.x<=40 and 0<=zombie.y<=40:
+                if str(zombie) == 'fast_zombie':
+                    HEALTH -= 5
+                elif str(zombie) == 'slow_zombie':
+                    HEALTH -= 10
                 self.zombie_list.remove(zombie)
-                return True
-        return False
+                
 
     def check_dead_zombie(self):
+        global coin
         for zombie in self.zombie_list:
             if zombie.health <= 0:
+                if str(zombie) == 'slow_zombie':
+                    coin += 200
+                elif str(zombie) == 'fast_zombie':
+                    coin += 300
                 self.zombie_list.remove(zombie)
-                return True
-        return False
-
-
+                return 1
+        return 0
+                
+        
 class Zombie(ABC):
     def __init__(self):
         self.x = 0
@@ -77,6 +89,8 @@ class Zombie(ABC):
         else:
             self.x -= self.speed
 
+   
+
 
     @abstractmethod
     def draw(self, win):
@@ -92,6 +106,10 @@ class FastZombie(Zombie):
     def draw(self, win):
         win.blit(zombie_image_fast, (self.x, self.y))
 
+    def __str__(self):
+        return 'fast_zombie'
+    
+
 
 class SlowZombie(Zombie):
     def __init__(self):
@@ -102,12 +120,17 @@ class SlowZombie(Zombie):
     def draw(self, win):
         win.blit(zombie_image_slow, (self.x, self.y))
 
+    def __str__(self):
+        return 'slow_zombie'
+
+    
+
 
 class Bullet:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.damage = 50
+        self.damage = 5
         self.speed = 4
 
     def move_bullet_down(self):
@@ -164,6 +187,20 @@ class Tower:
         for bullet in self.bullets:
             if bullet.x > 650 or bullet.y > 650 or bullet.y < 10:
                 self.bullets.remove(bullet)
+
+def end_game():
+    end_game_text = end_game_FONT.render('Game Over', 1,RED)
+    win.blit(end_game_text, (150, 300))
+    pygame.display.update()
+    pygame.time.delay(5000)
+
+def win_game():
+    win_game_text = end_game_FONT.render('You Won', 1,GREEN)
+    win.blit(win_game_text, (150, 300))
+    pygame.display.update()
+    pygame.time.delay(5000)
+
+
 
 
 zombie_home = ZombieHome()
@@ -230,7 +267,7 @@ while run:
     for tower, zombie in zip(Tower.TOWER_LIST, zombie_home.zombie_list):
         for bullet in tower.bullets:
             if -30<=zombie.x - bullet.x<=30 and -30<=zombie.y - bullet.y<=30:
-                zombie.health -= 50
+                zombie.health -= bullet.damage
 
 
                     
@@ -247,11 +284,16 @@ while run:
     for tower in Tower.TOWER_LIST:
         tower.bullet_handle_out()
 
-    if zombie_home.zombie_wins():
-        HEALTH -= 10
+    zombie_home.zombie_wins()
+    
 
-    if zombie_home.check_dead_zombie():
-        coin += 250
+    dead_zombie += zombie_home.check_dead_zombie()
+
+    if HEALTH <= 0:
+        end_game()
+
+    if dead_zombie == 3:
+        win_game()
+        
 
     draw_game()
-    pygame.display.update()
