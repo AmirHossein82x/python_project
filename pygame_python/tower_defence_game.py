@@ -11,6 +11,8 @@ pygame.display.set_caption('tower defence')
 
 zombie_image_fast = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'fast_zombie_2-modified.png')), (80, 80))
 zombie_image_slow = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'slow_zombie-modified.png')), (80, 80))
+zombie_image_fast_cold = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'fast_zombie_cold.png')), (80, 80))
+zombie_image_slow_cold = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'slow_zombie_cold.png')), (80, 80))
 zombie_image_home = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'zombie_home-modified.png')), (120, 120))
 tower_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'tower-modified.png')), (90, 90))
 cold_tower_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'cold_tower.webp')), (90, 90))
@@ -79,9 +81,9 @@ class Zombie(ABC):
         self.x = 0
         self.y = 600
         self.speed = 0
+        self.image = None
 
 
-    
     def move(self):
         if self.y == 600 and self.x < 600:
             self.x += self.speed
@@ -89,8 +91,6 @@ class Zombie(ABC):
             self.y -= self.speed
         else:
             self.x -= self.speed
-
-   
 
 
     @abstractmethod
@@ -103,13 +103,13 @@ class FastZombie(Zombie):
         super().__init__()
         self.speed = 2
         self.health = 100
+        self.image = zombie_image_fast
 
     def draw(self, win):
-        win.blit(zombie_image_fast, (self.x, self.y))
+        win.blit(self.image, (self.x, self.y))
 
     def __str__(self):
         return 'fast_zombie'
-    
 
 
 class SlowZombie(Zombie):
@@ -117,22 +117,22 @@ class SlowZombie(Zombie):
         super().__init__()
         self.speed = 1
         self.health = 200
+        self.image = zombie_image_slow
 
     def draw(self, win):
-        win.blit(zombie_image_slow, (self.x, self.y))
+        win.blit(self.image, (self.x, self.y))
 
     def __str__(self):
         return 'slow_zombie'
 
     
-
-
-class Bullet:
+class Bullet(ABC):
     def __init__(self, x, y):
         self.x = x
         self.y = y
         self.damage = 5
         self.speed = 4
+        self.image = None
 
     def move_bullet_down(self):
         self.y += self.speed
@@ -143,20 +143,25 @@ class Bullet:
     def move_bullet_up(self):
         self.y -= self.speed
 
-
     def draw_bullet(self, win):
-        win.blit(bullet_image, (self.x, self.y))
+        win.blit(self.image, (self.x, self.y))
 
     def __str__(self):
         return 'bullet'
+
+class DamageBulllet(Bullet):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.image = bullet_image
+
+    def __str__(self):
+        return 'damage_bullet'
 
 class ColdBullet(Bullet):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.damage = 0.75
-
-    def draw_bullet(self, win):
-        win.blit(cold_bullet_image, (self.x, self.y))
+        self.image = cold_bullet_image  
 
     def __str__(self):
         return 'cold_bullet'
@@ -167,23 +172,14 @@ class BaseTower:
         self.x = x
         self.y = y
         self.bullets = []
+        self.image = tower_image
         
-
     @classmethod
     def create_tower(cls, x, y):
         BaseTower.TOWER_LIST.append(cls(x, y))
 
-    
-    def draw_tower(win):
-        for tower in BaseTower.TOWER_LIST:
-            if str(tower) == 'base_tower':
-                win.blit(tower_image, (tower.x, tower.y))
-            elif str(tower) == 'tower':
-                win.blit(cold_tower_image, (tower.x, tower.y))
-
-
-    # def make_bullet(self):
-    #     self.bullets.append(Bullet(tower.x + 30, tower.y + 30))
+    def draw_tower(self, win):
+        win.blit(self.image, (self.x, self.y))
 
     def draw_bullet(self, win):
         for bullet in self.bullets:
@@ -209,32 +205,49 @@ class BaseTower:
     def __str__(self):
         return 'base_tower'
 
-class Tower(BaseTower):
+class BulletTower(BaseTower):
     def __init__(self, x, y):
         super().__init__(x, y)
+        self.image = tower_image
+ 
+    def __str__(self):
+        return 'bullet_tower'
+
+    def shoot(self):
+        self.bullets.append(DamageBulllet(self.x + 30, self.y + 30))
+
+class SnowTower(BaseTower):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.image = cold_tower_image
+    
+    def shoot(self):
+        self.bullets.append(ColdBullet(self.x + 30, self.y + 30))
 
     def __str__(self):
-        return 'tower'
+        return 'snow_tower'
 
 def end_game():
+    global run
     end_game_text = end_game_FONT.render('Game Over', 1,RED)
     win.blit(end_game_text, (150, 300))
     pygame.display.update()
-    pygame.time.delay(5000)
+    pygame.time.delay(2000)
+    run = False
 
 def win_game():
+    global run
     win_game_text = end_game_FONT.render('You Won', 1,GREEN)
     win.blit(win_game_text, (150, 300))
     pygame.display.update()
-    pygame.time.delay(5000)
-
-
-
+    pygame.time.delay(2000)
+    run = False
 
 zombie_home = ZombieHome()
-tower = BaseTower(150, 50)
-cold_tower = Tower(2, 2)
-BaseTower.create_tower(500, 150)
+cold_tower = SnowTower(0, 0)
+bullet_tower = BulletTower(0, 0)
+base_tower = BaseTower(0, 0)
+bullet_tower.create_tower(500, 150)
 cold_tower.create_tower(500, 300)
 
 YELLOW = (255, 255, 0)
@@ -248,7 +261,8 @@ def draw_game():
 
     zombie_home.draw(win)
 
-    BaseTower.draw_tower(win)
+    for towerz in base_tower.TOWER_LIST:
+        towerz.draw_tower(win)
 
     for tower in BaseTower.TOWER_LIST:
         tower.draw_bullet(win)
@@ -279,7 +293,7 @@ while run:
     if coin >= 500:
         if pygame.mouse.get_pressed()[0]:
             x, y = pygame.mouse.get_pos()
-            BaseTower.create_tower(x-50, y-50)
+            bullet_tower.create_tower(x-50, y-50)
             coin -= 500
 
     if coin >= 1000:
@@ -292,31 +306,27 @@ while run:
         if len(tower2.bullets) < 1:
             for zombie in zombie_home.zombie_list:
                 if 0<tower2.x - zombie.x<100 and 0<zombie.y - tower2.y<200 and tower2.x > zombie.x:
-                    if str(tower2) == 'base_tower':
-                        tower2.bullets.append(Bullet(tower2.x + 30, tower2.y + 30))
-                    elif str(tower2) == 'tower':
-                        tower2.bullets.append(ColdBullet(tower2.x + 30, tower2.y + 30))
-                elif 0< zombie.x - tower2.x <200 and 0<zombie.y - tower2.y<100 and  zombie.x >tower2.x :
-                    if str(tower2) == 'base_tower':
-                        tower2.bullets.append(Bullet(tower2.x + 30, tower2.y + 30))
-                    elif str(tower2) == 'tower':
-                        tower2.bullets.append(ColdBullet(tower2.x + 30, tower2.y + 30))
+                    tower2.shoot()
 
-                elif 0< zombie.x - tower2.x <100 and 0< tower2.y - zombie.y<50 and  zombie.y < tower2.y :
-                    if str(tower2) == 'base_tower':
-                        tower2.bullets.append(Bullet(tower2.x + 30, tower2.y + 30))
-                    elif str(tower2) == 'tower':
-                        tower2.bullets.append(ColdBullet(tower2.x + 30, tower2.y + 30))
+                if 0< zombie.x - tower2.x <200 and 0<zombie.y - tower2.y<100 and  zombie.x >tower2.x :
+                    tower2.shoot()
+
+                if 0< zombie.x - tower2.x <100 and 0< tower2.y - zombie.y<50 and  zombie.y < tower2.y :
+                    tower2.shoot()
+
 
     for tower in BaseTower.TOWER_LIST:
             for zombie in zombie_home.zombie_list:
                 for bullet in tower.bullets:
                     if -30<=zombie.x - bullet.x<=30 and -30<=zombie.y - bullet.y<=30:
-                        if str(bullet) == 'bullet':
+                        if str(bullet) == 'damage_bullet':
                             zombie.health -= bullet.damage
                         if str(bullet) == 'cold_bullet' and zombie.speed > 0.85:
                             zombie.speed -= bullet.damage
-
+                            if str(zombie) == 'fast_zombie':
+                                zombie.image = zombie_image_fast_cold
+                            elif str(zombie) == 'slow_zombie':
+                                zombie.image = zombie_image_slow_cold
 
                     
     for tower1 in tower.TOWER_LIST:
@@ -342,6 +352,4 @@ while run:
 
     if dead_zombie == 15:
         win_game()
-    
-
     draw_game()
