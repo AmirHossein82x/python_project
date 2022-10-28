@@ -13,12 +13,13 @@ zombie_image_fast = pygame.transform.scale(pygame.image.load(os.path.join('tower
 zombie_image_slow = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'slow_zombie-modified.png')), (80, 80))
 zombie_image_fast_cold = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'fast_zombie_cold.png')), (80, 80))
 zombie_image_slow_cold = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'slow_zombie_cold.png')), (80, 80))
-zombie_image_home = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'zombie_home-modified.png')), (120, 120))
+zombie_image_home = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'zombie_home-modified.png')), (140, 140))
 tower_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'tower-modified.png')), (90, 90))
-cold_tower_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'cold_tower.webp')), (90, 90))
+cold_tower_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'cold_tower.png')), (120, 120))
 hole_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'hole-modified.png')), (120, 120))
 bullet_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'bullet-modified.png')), (40, 40))
 cold_bullet_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'snow_ball.png')), (40, 40))
+field_image = pygame.transform.scale(pygame.image.load(os.path.join('tower_defence_assets', 'field.jpg')), (700, 700))
 
 COIN_FONT = pygame.font.SysFont('comicsans', 40)
 HEALTH_FONT = pygame.font.SysFont('comicsans', 10)
@@ -26,12 +27,14 @@ end_game_FONT = pygame.font.SysFont('comicsans', 100)
 coin = 600
 HEALTH = 100
 RED = (255, 0, 0)
+BLACK = (0, 0, 0)
+BORDER = pygame.Rect(700//2 - 5, 0, 10, 700)
 dead_zombie = 0
 
 class ZombieHome:
     def __init__(self):
         self.__x = 0
-        self.__y = 570
+        self.__y = 520
         self.zombie_list = []
 
     def draw(self, win):
@@ -79,13 +82,14 @@ class ZombieHome:
 class Zombie(ABC):
     def __init__(self):
         self.x = 0
-        self.y = 600
+        self.y = 570
         self.speed = 0
         self.image = None
+        self.is_hitted_by_snow_ball = False
 
 
     def move(self):
-        if self.y == 600 and self.x < 600:
+        if self.y == 570 and self.x < 600:
             self.x += self.speed
         elif 25<self.y <= 600 and self.x == 600:
             self.y -= self.speed
@@ -160,7 +164,7 @@ class DamageBulllet(Bullet):
 class ColdBullet(Bullet):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.damage = 0.75
+        self.damage = 0.25
         self.image = cold_bullet_image  
 
     def __str__(self):
@@ -213,7 +217,7 @@ class BulletTower(BaseTower):
     def __str__(self):
         return 'bullet_tower'
 
-    def shoot(self):
+    def shoot(self, zombie):
         self.bullets.append(DamageBulllet(self.x + 30, self.y + 30))
 
 class SnowTower(BaseTower):
@@ -221,8 +225,9 @@ class SnowTower(BaseTower):
         super().__init__(x, y)
         self.image = cold_tower_image
     
-    def shoot(self):
-        self.bullets.append(ColdBullet(self.x + 30, self.y + 30))
+    def shoot(self, zombie):
+        if not zombie.is_hitted_by_snow_ball:
+            self.bullets.append(ColdBullet(self.x + 30, self.y + 30))
 
     def __str__(self):
         return 'snow_tower'
@@ -255,7 +260,8 @@ GREEN = (102,205,0)
 
 def draw_game():
 
-    win.fill((240,0,255))
+    # win.fill((240,0,255))
+    win.blit(field_image, (0, 0))
     
     zombie_home.draw_zombies(win)
 
@@ -299,20 +305,20 @@ while run:
     if coin >= 1000:
         if pygame.mouse.get_pressed()[2]:
             x, y = pygame.mouse.get_pos()
-            cold_tower.create_tower(x-50, y-50)
+            cold_tower.create_tower(x-50, y-40)
             coin -= 1000
 
     for tower2 in BaseTower.TOWER_LIST:
         if len(tower2.bullets) < 1:
             for zombie in zombie_home.zombie_list:
-                if 0<tower2.x - zombie.x<100 and 0<zombie.y - tower2.y<200 and tower2.x > zombie.x:
-                    tower2.shoot()
+                if 0<tower2.x - zombie.x<100 and 0<zombie.y - tower2.y<110 and tower2.x > zombie.x:
+                    tower2.shoot(zombie)
 
                 if 0< zombie.x - tower2.x <200 and 0<zombie.y - tower2.y<100 and  zombie.x >tower2.x :
-                    tower2.shoot()
+                    tower2.shoot(zombie)
 
-                if 0< zombie.x - tower2.x <100 and 0< tower2.y - zombie.y<50 and  zombie.y < tower2.y :
-                    tower2.shoot()
+                if 0< zombie.x - tower2.x <100 and 0< tower2.y - zombie.y<110 and  zombie.y < tower2.y :
+                    tower2.shoot(zombie)
 
 
     for tower in BaseTower.TOWER_LIST:
@@ -321,14 +327,15 @@ while run:
                     if -30<=zombie.x - bullet.x<=30 and -30<=zombie.y - bullet.y<=30:
                         if str(bullet) == 'damage_bullet':
                             zombie.health -= bullet.damage
-                        if str(bullet) == 'cold_bullet' and zombie.speed > 0.85:
+                        if str(bullet) == 'cold_bullet' and zombie.speed >= 0.75:
                             zombie.speed -= bullet.damage
+                            zombie.is_hitted_by_snow_ball = True
                             if str(zombie) == 'fast_zombie':
                                 zombie.image = zombie_image_fast_cold
                             elif str(zombie) == 'slow_zombie':
                                 zombie.image = zombie_image_slow_cold
-
-                    
+                                
+                                         
     for tower1 in tower.TOWER_LIST:
         if tower1.y > 470:
             tower1.move_bullet_down()
