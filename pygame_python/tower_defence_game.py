@@ -260,7 +260,6 @@ GREEN = (102,205,0)
 
 def draw_game():
 
-    # win.fill((240,0,255))
     win.blit(field_image, (0, 0))
     
     zombie_home.draw_zombies(win)
